@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Statistiken - Vereinskasse</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; background: white; border-radius: 20px; padding: 30px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+        h1 { text-align: center; color: #333; margin-bottom: 30px; font-size: 2.5em; }
+        h2 { margin-top: 30px; color: #667eea; }
+        h3 { margin-top: 20px; color: #333; }
+        
+        /* Tabs */
+        .tabs { display: flex; gap: 10px; margin-bottom: 30px; border-bottom: 2px solid #e0e0e0; }
+        .tab { padding: 15px 30px; background: none; border: none; border-bottom: 3px solid transparent; cursor: pointer; font-size: 1.1em; font-weight: bold; color: #666; transition: all 0.3s; }
+        .tab:hover { color: #667eea; }
+        .tab.active { color: #667eea; border-bottom-color: #667eea; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        /* Filters */
+        .filters { background: #f8f9fa; padding: 20px; border-radius: 12px; margin-bottom: 30px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+        .filter-group { display: flex; flex-direction: column; }
+        .filter-group label { margin-bottom: 5px; font-weight: bold; color: #333; }
+        .filter-group input, .filter-group select { padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 1em; }
+        
+        /* Buttons */
+        .btn { padding: 12px 24px; border: none; border-radius: 8px; font-size: 1em; font-weight: bold; cursor: pointer; transition: all 0.3s; }
+        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(102,126,234,0.4); }
+        .btn-export { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; }
+        .btn-export:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(16,185,129,0.4); }
+        .btn-storno { background: #ef4444; color: white; padding: 8px 16px; font-size: 0.9em; }
+        .btn-storno:hover { background: #dc2626; }
+        .btn-cancel { background: #6b7280; color: white; }
+        .btn-cancel:hover { background: #4b5563; }
+        
+        /* Summary Cards */
+        .summary-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .summary-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        .summary-card h3 { font-size: 0.9em; opacity: 0.9; margin-bottom: 10px; }
+        .summary-card .value { font-size: 2.5em; font-weight: bold; }
+        .summary-card small { opacity: 0.8; font-size: 0.9em; }
+        
+        /* Tables */
+        .stats-table, .storno-table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .stats-table th, .stats-table td, .storno-table th, .storno-table td { padding: 15px; text-align: left; border-bottom: 1px solid #e0e0e0; }
+        .stats-table th, .storno-table th { background: #f8f9fa; font-weight: bold; color: #333; }
+        .stats-table tr:hover, .storno-table tr:hover { background: #f8f9fa; }
+        .storno-table .storno-row { background: #fee; opacity: 0.7; }
+        
+        /* Messages */
+        .loading, .no-data { text-align: center; padding: 40px; color: #999; font-size: 1.1em; }
+        .success-message, .error-message { padding: 15px; border-radius: 8px; margin-bottom: 20px; display: none; }
+        .success-message { background: #d1fae5; color: #065f46; border: 1px solid #10b981; }
+        .error-message { background: #fee; color: #991b1b; border: 1px solid #ef4444; }
+        
+        /* Modal */
+        .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; }
+        .modal.show { display: flex; }
+        .modal-content { background: white; padding: 30px; border-radius: 20px; max-width: 500px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+        .modal-content h2 { margin-bottom: 20px; color: #333; }
+        .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+        
+        /* Password Dialog */
+        #passwordDialog { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; }
+        .password-box { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); text-align: center; }
+        .password-box input { width: 100%; padding: 15px; margin: 20px 0; border: 2px solid #ddd; border-radius: 8px; font-size: 1.1em; }
+        
+        /* Info Box */
+        .info-box { background: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #ffc107; }
+        
+        /* Tips Display */
+        .tips-display { background: #e0f7fa; padding: 15px; border-radius: 8px; margin-top: 10px; }
+        .tips-display strong { color: #00695c; }
+        .tip-item { display: inline-block; margin: 5px 10px 5px 0; color: #004d40; }
+        
+        @media (max-width: 768px) {
+            .container { padding: 15px; }
+            h1 { font-size: 2em; }
+            .summary-cards { grid-template-columns: 1fr; }
+            .tabs { overflow-x: auto; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Password Dialog -->
+    <div id="passwordDialog">
+        <div class="password-box">
+            <h2>🔒 Admin-Bereich</h2>
+            <p>Bitte Admin-Passwort eingeben</p>
+            <input type="password" id="passwordInput" placeholder="Passwort" onkeypress="if(event.key==='Enter') checkPassword()">
+            <button class="btn btn-primary" onclick="checkPassword()">Anmelden</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <h1>📊 Statistiken</h1>
+        <div class="success-message" id="successMessage"></div>
+        <div class="error-message" id="errorMessage"></div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('statistics')">Statistiken</button>
+            <button class="tab" onclick="switchTab('storno')">Storno / Korrektur</button>
+        </div>
+
+        <!-- Tab: Statistiken -->
+        <div class="tab-content active" id="statisticsTab">
+            <div class="filters">
+                <div class="filter-group">
+                    <label for="startDate">Von:</label>
+                    <input type="date" id="startDate">
+                </div>
+                <div class="filter-group">
+                    <label for="endDate">Bis:</label>
+                    <input type="date" id="endDate">
+                </div>
+                <div class="filter-group">
+                    <label for="roomFilter">Raum:</label>
+                    <select id="roomFilter"><option value="">Alle Räume</option></select>
+                </div>
+                <div class="filter-group">
+                    <label for="eventFilter">Event:</label>
+                    <select id="eventFilter"><option value="">Alle Events</option></select>
+                </div>
+                <div class="filter-group" style="display: flex; align-items: flex-end;">
+                    <button class="btn btn-primary" onclick="loadStatistics()" style="width: 100%;">Aktualisieren</button>
+                </div>
+                <div class="filter-group" style="display: flex; align-items: flex-end;">
+                    <button class="btn btn-export" onclick="exportStatistics()" style="width: 100%;">📥 Export CSV</button>
+                </div>
+            </div>
+
+            <div class="summary-cards" id="summaryCards"></div>
+            <div id="statsContainer"><div class="loading">Lade Statistiken...</div></div>
+        </div>
+
+        <!-- Tab: Storno -->
+        <div class="tab-content" id="stornoTab">
+            <div class="info-box">
+                <strong>ℹ️ Hinweis:</strong> Stornierungen erstellen negative Buchungen. Die Original-Transaktion bleibt erhalten (Audit-Trail).
+            </div>
+            <div class="filter-group" style="max-width: 300px; margin-bottom: 20px;">
+                <label for="stornoLimit">Anzahl Transaktionen:</label>
+                <select id="stornoLimit" onchange="loadStornoTransactions()">
+                    <option value="50">Letzte 50</option>
+                    <option value="100">Letzte 100</option>
+                    <option value="200">Letzte 200</option>
+                </select>
+            </div>
+            <div id="stornoContainer"><div class="loading">Lade Transaktionen...</div></div>
+        </div>
+    </div>
+
+    <!-- Storno Modal -->
+    <div class="modal" id="stornoModal">
+        <div class="modal-content">
+            <h2>⚠️ Transaktion stornieren</h2>
+            <div id="stornoDetails" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;"></div>
+            <p style="margin: 15px 0;">Dies erstellt eine <strong>negative Buchung</strong>. Die Original-Transaktion bleibt erhalten.</p>
+            <div class="modal-actions">
+                <button class="btn btn-cancel" onclick="closeStornoModal()">Abbrechen</button>
+                <button class="btn btn-storno" onclick="confirmStorno()">Stornieren</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentPassword = '';
+        let rooms = [];
+        let drinks = [];
+        let events = [];
+        let currentStats = null;
+        let selectedStornoTransaction = null;
+
+        function checkPassword() {
+            const password = document.getElementById('passwordInput').value;
+            fetch('/api/auth/validate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.valid) {
+                    currentPassword = password;
+                    document.getElementById('passwordDialog').style.display = 'none';
+                    init();
+                } else {
+                    alert('Falsches Passwort');
+                }
+            })
+            .catch(error => {
+                alert('Fehler bei der Anmeldung');
+                console.error(error);
+            });
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(tabName + 'Tab').classList.add('active');
+            if (tabName === 'storno') loadStornoTransactions();
+        }
+
+        async function init() {
+            await loadRooms();
+            await loadDrinks();
+            await loadStatistics();
+            const endDate = new Date();
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - 30);
+            document.getElementById('endDate').valueAsDate = endDate;
+            document.getElementById('startDate').valueAsDate = startDate;
+        }
+
+        async function loadRooms() {
+            try {
+                const response = await fetch('/api/rooms');
+                rooms = await response.json();
+                const roomFilter = document.getElementById('roomFilter');
+                roomFilter.innerHTML = '<option value="">Alle Räume</option>' +
+                    rooms.map(room => `<option value="${room.id}">${room.name}</option>`).join('');
+            } catch (error) {
+                console.error('Fehler beim Laden der Räume:', error);
+            }
+        }
+
+        async function loadDrinks() {
+            try {
+                const response = await fetch('/api/drinks');
+                drinks = await response.json();
+            } catch (error) {
+                console.error('Fehler beim Laden der Getränke:', error);
+            }
+        }
+
+        async function loadStatistics() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const roomId = document.getElementById('roomFilter').value;
+            const eventName = document.getElementById('eventFilter').value;
+
+            let url = '/api/statistics?';
+            if (startDate) url += `start_date=${startDate}&`;
+            if (endDate) url += `end_date=${endDate}&`;
+            if (roomId) url += `room_id=${roomId}&`;
+            if (eventName) url += `event_name=${eventName}&`;
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                currentStats = data;
+                
+                // Update event filter
+                if (data.events && data.events.length > 0) {
+                    events = data.events;
+                    const currentEvent = document.getElementById('eventFilter').value;
+                    const eventFilter = document.getElementById('eventFilter');
+                    eventFilter.innerHTML = '<option value="">Alle Events</option>' +
+                        events.map(event => `<option value="${event}" ${event === currentEvent ? 'selected' : ''}>${event}</option>`).join('');
+                }
+                
+                renderSummary(data.summary);
+                renderStats(data.statistics);
+            } catch (error) {
+                showError('Fehler beim Laden der Statistiken');
+                console.error(error);
+            }
+        }
+
+        function renderSummary(summary) {
+            const container = document.getElementById('summaryCards');
+            if (!summary || summary.total_items === null) {
+                container.innerHTML = '<div class="no-data">Keine Daten verfügbar</div>';
+                return;
+            }
+
+            const nettoItems = (summary.total_items || 0) - (summary.storno_items || 0);
+            const nettoRevenue = (summary.total_revenue || 0) - (summary.storno_revenue || 0);
+            const totalTips = summary.total_tips || 0;
+            const total = nettoRevenue + totalTips;
+
+            let cards = `
+                <div class="summary-card">
+                    <h3>Verkaufte Getränke (Netto)</h3>
+                    <div class="value">${nettoItems}</div>
+                    ${summary.storno_items ? `<small>Brutto: ${summary.total_items} - Storno: ${summary.storno_items}</small>` : ''}
+                </div>
+                <div class="summary-card">
+                    <h3>Umsatz Getränke</h3>
+                    <div class="value">${nettoRevenue.toFixed(2)} €</div>
+                </div>
+                <div class="summary-card" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+                    <h3>Trinkgeld Gesamt</h3>
+                    <div class="value">${totalTips.toFixed(2)} €</div>
+                </div>
+                <div class="summary-card" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                    <h3>Gesamt</h3>
+                    <div class="value">${total.toFixed(2)} €</div>
+                </div>
+            `;
+            
+            if (currentStats.tips_per_room && currentStats.tips_per_room.length > 0) {
+                cards += '<div class="tips-display" style="grid-column: 1 / -1;"><strong>Trinkgeld Details:</strong><br>';
+                currentStats.tips_per_room.forEach(tip => {
+                    const label = tip.event_name ? `${tip.room_name} (${tip.event_name})` : tip.room_name;
+                    cards += `<span class="tip-item">📍 ${label}: <strong>${(tip.total_tips || 0).toFixed(2)} €</strong></span>`;
+                });
+                cards += '</div>';
+            }
+
+            container.innerHTML = cards;
+        }
+
+        function renderStats(statistics) {
+            const container = document.getElementById('statsContainer');
+            if (!statistics || statistics.length === 0) {
+                container.innerHTML = '<div class="no-data">Keine Daten verfügbar für den gewählten Zeitraum</div>';
+                return;
+            }
+
+            const grouped = {};
+            statistics.forEach(stat => {
+                const eventName = stat.event_name || 'Unbekannt';
+                if (!grouped[eventName]) grouped[eventName] = {};
+                if (!grouped[eventName][stat.room_name]) grouped[eventName][stat.room_name] = [];
+                grouped[eventName][stat.room_name].push(stat);
+            });
+
+            let html = '';
+            Object.keys(grouped).sort().forEach(eventName => {
+                html += `<h2>📅 ${eventName}</h2>`;
+                Object.keys(grouped[eventName]).sort().forEach(roomName => {
+                    const drinks = grouped[eventName][roomName];
+                    html += `<h3>📍 ${roomName}</h3>`;
+                    html += '<table class="stats-table"><thead><tr>';
+                    html += '<th>Getränk</th><th>Verkauft</th><th>Storniert</th><th>Netto</th><th>Umsatz</th>';
+                    html += '</tr></thead><tbody>';
+                    drinks.forEach(drink => {
+                        const netto = (drink.total_quantity || 0) - (drink.storno_quantity || 0);
+                        const nettoRevenue = (drink.total_revenue || 0) - (drink.storno_revenue || 0);
+                        html += '<tr>';
+                        html += `<td><strong>${drink.drink_name}</strong></td>`;
+                        html += `<td>${drink.total_quantity || 0}</td>`;
+                        html += `<td>${drink.storno_quantity || 0}</td>`;
+                        html += `<td><strong>${netto}</strong></td>`;
+                        html += `<td><strong>${nettoRevenue.toFixed(2)} €</strong></td>`;
+                        html += '</tr>';
+                    });
+                    html += '</tbody></table>';
+                });
+            });
+            container.innerHTML = html;
+        }
+
+        function exportStatistics() {
+            if (!currentStats || !currentStats.statistics) {
+                showError('Keine Daten zum Exportieren');
+                return;
+            }
+
+            const startDate = document.getElementById('startDate').value || 'Anfang';
+            const endDate = document.getElementById('endDate').value || 'Heute';
+            
+            let csv = 'Vereinskasse - Statistik Export\n';
+            csv += `Zeitraum,${startDate} bis ${endDate}\n`;
+            csv += `Export-Datum,${new Date().toLocaleString('de-DE')}\n\n`;
+
+            const eventGroups = {};
+            currentStats.statistics.forEach(stat => {
+                const eventName = stat.event_name || 'Unbekannt';
+                if (!eventGroups[eventName]) eventGroups[eventName] = {};
+                const roomName = stat.room_name;
+                if (!eventGroups[eventName][roomName]) {
+                    eventGroups[eventName][roomName] = {
+                        drinks: [],
+                        totalQuantity: 0,
+                        stornoQuantity: 0,
+                        totalRevenue: 0,
+                        stornoRevenue: 0
+                    };
+                }
+                eventGroups[eventName][roomName].drinks.push(stat);
+                eventGroups[eventName][roomName].totalQuantity += (stat.total_quantity || 0);
+                eventGroups[eventName][roomName].stornoQuantity += (stat.storno_quantity || 0);
+                eventGroups[eventName][roomName].totalRevenue += (stat.total_revenue || 0);
+                eventGroups[eventName][roomName].stornoRevenue += (stat.storno_revenue || 0);
+            });
+
+            Object.keys(eventGroups).sort().forEach(eventName => {
+                csv += `\n=== ${eventName} ===\n\n`;
+                csv += 'Raum,Getränk,Verkauft,Storniert,Netto,Umsatz\n';
+                Object.keys(eventGroups[eventName]).forEach(roomName => {
+                    const roomData = eventGroups[eventName][roomName];
+                    roomData.drinks.forEach(drink => {
+                        const netto = (drink.total_quantity || 0) - (drink.storno_quantity || 0);
+                        const nettoRevenue = (drink.total_revenue || 0) - (drink.storno_revenue || 0);
+                        csv += `"${roomName}","${drink.drink_name}",${drink.total_quantity || 0},${drink.storno_quantity || 0},${netto},${nettoRevenue.toFixed(2)}\n`;
+                    });
+                });
+                
+                csv += '\n--- Zusammenfassung pro Raum ---\n\n';
+                Object.keys(eventGroups[eventName]).forEach(roomName => {
+                    const roomData = eventGroups[eventName][roomName];
+                    const nettoQty = roomData.totalQuantity - roomData.stornoQuantity;
+                    const nettoRev = roomData.totalRevenue - roomData.stornoRevenue;
+                    const roomTips = currentStats.tips_per_room?.find(t => 
+                        t.room_name === roomName && t.event_name === eventName
+                    );
+                    const tips = roomTips ? roomTips.total_tips : 0;
+                    csv += `${roomName}\n`;
+                    csv += `Getränke (Brutto),${roomData.totalQuantity}\n`;
+                    if (roomData.stornoQuantity > 0) csv += `Storniert,${roomData.stornoQuantity}\n`;
+                    csv += `Getränke (Netto),${nettoQty}\n`;
+                    csv += `Einnahmen Getränke,${nettoRev.toFixed(2)}\n`;
+                    csv += `Trinkgeld,${tips.toFixed(2)}\n`;
+                    csv += `Gesamt ${roomName},${(nettoRev + tips).toFixed(2)}\n\n`;
+                });
+            });
+            
+            csv += '\n=== GESAMT (ALLE EVENTS) ===\n';
+            csv += `Verkaufte Getränke (Brutto),${currentStats.summary.total_items || 0}\n`;
+            if (currentStats.summary.storno_items > 0) csv += `Storniert,${currentStats.summary.storno_items}\n`;
+            csv += `Verkaufte Getränke (Netto),${(currentStats.summary.total_items || 0) - (currentStats.summary.storno_items || 0)}\n`;
+            csv += `Umsatz Getränke,${((currentStats.summary.total_revenue || 0) - (currentStats.summary.storno_revenue || 0)).toFixed(2)}\n`;
+            csv += `Trinkgeld Gesamt,${(currentStats.summary.total_tips || 0).toFixed(2)}\n`;
+            csv += `GESAMT EINNAHMEN,${((currentStats.summary.total_revenue || 0) - (currentStats.summary.storno_revenue || 0) + (currentStats.summary.total_tips || 0)).toFixed(2)}\n`;
+
+            // Getränke-Gesamtliste (alle Events zusammen)
+            csv += '\n\n=== GETRÄNKE GESAMT (ALLE EVENTS & RÄUME) ===\n';
+            csv += 'Getränk,Verkauft,Storniert,Netto,Umsatz\n';
+            
+            // Aggregiere alle Getränke über alle Events und Räume
+            const drinkTotals = {};
+            currentStats.statistics.forEach(stat => {
+                if (!drinkTotals[stat.drink_name]) {
+                    drinkTotals[stat.drink_name] = {
+                        sold: 0,
+                        storno: 0,
+                        revenue: 0,
+                        stornoRevenue: 0
+                    };
+                }
+                drinkTotals[stat.drink_name].sold += (stat.total_quantity || 0);
+                drinkTotals[stat.drink_name].storno += (stat.storno_quantity || 0);
+                drinkTotals[stat.drink_name].revenue += (stat.total_revenue || 0);
+                drinkTotals[stat.drink_name].stornoRevenue += (stat.storno_revenue || 0);
+            });
+            
+            // Sortiere nach Netto-Anzahl (meistverkauft zuerst)
+            const sortedDrinks = Object.entries(drinkTotals).sort((a, b) => {
+                const nettoA = a[1].sold - a[1].storno;
+                const nettoB = b[1].sold - b[1].storno;
+                return nettoB - nettoA;
+            });
+            
+            sortedDrinks.forEach(([drinkName, totals]) => {
+                const netto = totals.sold - totals.storno;
+                const nettoRevenue = totals.revenue - totals.stornoRevenue;
+                csv += `"${drinkName}",${totals.sold},${totals.storno},${netto},${nettoRevenue.toFixed(2)}\n`;
+            });
+            
+            // Gesamt-Summe für Getränke-Liste
+            const totalSold = sortedDrinks.reduce((sum, [_, t]) => sum + t.sold, 0);
+            const totalStorno = sortedDrinks.reduce((sum, [_, t]) => sum + t.storno, 0);
+            const totalNetto = totalSold - totalStorno;
+            const totalRevenue = sortedDrinks.reduce((sum, [_, t]) => sum + (t.revenue - t.stornoRevenue), 0);
+            
+            csv += `\nSUMME,${totalSold},${totalStorno},${totalNetto},${totalRevenue.toFixed(2)}\n`;
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `vereinskasse_${startDate}_${endDate}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showSuccess('CSV-Datei wurde heruntergeladen');
+        }
+
+        async function loadStornoTransactions() {
+            const limit = document.getElementById('stornoLimit').value;
+            const container = document.getElementById('stornoContainer');
+            container.innerHTML = '<div class="loading">Lade Transaktionen...</div>';
+            
+            try {
+                const response = await fetch(`/api/statistics?`);
+                const data = await response.json();
+                
+                if (!data.statistics || data.statistics.length === 0) {
+                    container.innerHTML = '<div class="no-data">Keine Transaktionen vorhanden</div>';
+                    return;
+                }
+                
+                // Get all transactions
+                const allTransactions = [];
+                data.statistics.forEach(stat => {
+                    // Create pseudo-transaction entries from statistics
+                    for (let i = 0; i < (stat.total_quantity || 0); i++) {
+                        allTransactions.push({
+                            event_name: stat.event_name,
+                            room_name: stat.room_name,
+                            drink_name: stat.drink_name,
+                            quantity: 1,
+                            price: stat.total_revenue / stat.total_quantity,
+                            is_storno: 0
+                        });
+                    }
+                    for (let i = 0; i < (stat.storno_quantity || 0); i++) {
+                        allTransactions.push({
+                            event_name: stat.event_name,
+                            room_name: stat.room_name,
+                            drink_name: stat.drink_name,
+                            quantity: 1,
+                            price: stat.storno_revenue / stat.storno_quantity,
+                            is_storno: 1
+                        });
+                    }
+                });
+                
+                const transactions = allTransactions.slice(-parseInt(limit));
+                
+                let html = '<table class="storno-table"><thead><tr>';
+                html += '<th>Event</th><th>Raum</th><th>Getränk</th><th>Anzahl</th><th>Betrag</th><th>Status</th>';
+                html += '</tr></thead><tbody>';
+                
+                transactions.forEach((trans, idx) => {
+                    const isStorno = trans.is_storno === 1;
+                    const rowClass = isStorno ? ' class="storno-row"' : '';
+                    const stornoLabel = isStorno ? ' (STORNO)' : '';
+                    
+                    html += `<tr${rowClass}>`;
+                    html += `<td>${trans.event_name || 'N/A'}</td>`;
+                    html += `<td>${trans.room_name}</td>`;
+                    html += `<td>${trans.drink_name}${stornoLabel}</td>`;
+                    html += `<td>${trans.quantity}</td>`;
+                    html += `<td>${trans.price.toFixed(2)} €</td>`;
+                    html += `<td>`;
+                    if (!isStorno) {
+                        html += `<button class="btn-storno" onclick='showStornoModal(${idx}, ${JSON.stringify(trans).replace(/'/g, "&apos;")})'>Stornieren</button>`;
+                    } else {
+                        html += '<span style="color: #999;">Bereits storniert</span>';
+                    }
+                    html += `</td></tr>`;
+                });
+                
+                html += '</tbody></table>';
+                html += '<p style="margin-top: 20px; color: #666; text-align: center;"><em>Hinweis: Dies ist eine vereinfachte Ansicht der letzten Verkäufe basierend auf den Statistiken.</em></p>';
+                container.innerHTML = html;
+            } catch (error) {
+                showError('Fehler beim Laden der Transaktionen');
+                console.error(error);
+            }
+        }
+
+        function showStornoModal(id, trans) {
+            selectedStornoTransaction = trans;
+            const details = document.getElementById('stornoDetails');
+            details.innerHTML = `
+                <strong>Transaktion</strong><br>
+                Event: ${trans.event_name || 'N/A'}<br>
+                Raum: ${trans.room_name}<br>
+                Getränk: ${trans.drink_name}<br>
+                Anzahl: ${trans.quantity}<br>
+                Betrag: ${trans.price.toFixed(2)} €
+            `;
+            document.getElementById('stornoModal').classList.add('show');
+        }
+
+        function closeStornoModal() {
+            document.getElementById('stornoModal').classList.remove('show');
+            selectedStornoTransaction = null;
+        }
+
+        async function confirmStorno() {
+            if (!selectedStornoTransaction) return;
+            const trans = selectedStornoTransaction;
+            
+            // Find room ID
+            const room = rooms.find(r => r.name === trans.room_name);
+            if (!room) {
+                showError('Raum nicht gefunden');
+                return;
+            }
+            
+            // Find drink ID
+            const drink = drinks.find(d => d.name === trans.drink_name);
+            if (!drink) {
+                showError('Getränk nicht gefunden');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/transactions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        room_id: room.id,
+                        event_name: trans.event_name || 'Hausintern',
+                        items: [{
+                            drink_id: drink.id,
+                            quantity: trans.quantity,
+                            total_price: trans.price * trans.quantity,
+                            is_storno: 1
+                        }]
+                    })
+                });
+                
+                if (response.ok) {
+                    showSuccess('Transaktion wurde storniert');
+                    closeStornoModal();
+                    loadStornoTransactions();
+                    loadStatistics();
+                } else {
+                    showError('Fehler beim Stornieren');
+                }
+            } catch (error) {
+                showError('Netzwerkfehler');
+                console.error(error);
+            }
+        }
+
+        function showSuccess(message) {
+            const el = document.getElementById('successMessage');
+            el.textContent = message;
+            el.style.display = 'block';
+            setTimeout(() => el.style.display = 'none', 5000);
+        }
+
+        function showError(message) {
+            const el = document.getElementById('errorMessage');
+            el.textContent = message;
+            el.style.display = 'block';
+            setTimeout(() => el.style.display = 'none', 5000);
+        }
+
+        window.onload = () => {
+            document.getElementById('passwordDialog').style.display = 'flex';
+            document.getElementById('passwordInput').focus();
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vereinskasse</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        .room-selector {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .room-btn {
+            flex: 1;
+            padding: 20px;
+            font-size: 1.3em;
+            font-weight: bold;
+            border: 3px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .room-btn:hover {
+            background: #f0f0f0;
+        }
+
+        .room-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .drinks-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .drink-btn {
+            padding: 25px 15px;
+            border: none;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: bold;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            position: relative;
+        }
+
+        .drink-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .drink-btn:active {
+            transform: translateY(0);
+        }
+
+        .drink-name {
+            display: block;
+            font-size: 1.2em;
+            margin-bottom: 5px;
+        }
+
+        .drink-price {
+            display: block;
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .cart {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            min-height: 120px;
+        }
+
+        .cart h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: white;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .cart-item-info {
+            flex: 1;
+        }
+
+        .cart-item-name {
+            font-weight: bold;
+            color: #333;
+            font-size: 1.1em;
+        }
+
+        .cart-item-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .quantity-btn {
+            width: 35px;
+            height: 35px;
+            border: none;
+            background: #667eea;
+            color: white;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2em;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .quantity-btn:hover {
+            background: #5568d3;
+            transform: scale(1.1);
+        }
+
+        .quantity {
+            font-size: 1.3em;
+            font-weight: bold;
+            min-width: 30px;
+            text-align: center;
+        }
+
+        .item-price {
+            font-size: 1.1em;
+            color: #667eea;
+            font-weight: bold;
+            min-width: 60px;
+            text-align: right;
+        }
+
+        .cart-total {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px;
+            background: #667eea;
+            color: white;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+
+        .actions {
+            display: flex;
+            gap: 15px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 18px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-complete {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-complete:hover {
+            background: #059669;
+            transform: translateY(-2px);
+        }
+
+        .btn-cancel {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-cancel:hover {
+            background: #dc2626;
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .success-message {
+            background: #10b981;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1.1em;
+            display: none;
+        }
+
+        .error-message {
+            background: #ef4444;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+        }
+
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        .empty-cart {
+            text-align: center;
+            color: #999;
+            padding: 30px;
+            font-size: 1.1em;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            .drinks-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .room-selector {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🍺 Vereinskasse</h1>
+        <p class="subtitle" id="eventNameDisplay">Getränkeverkauf Bar</p>
+
+        <div class="success-message" id="successMessage"></div>
+        <div class="error-message" id="errorMessage"></div>
+
+        <div class="room-selector" id="roomSelector">
+            <!-- Wird dynamisch gefüllt -->
+        </div>
+
+        <div class="drinks-grid" id="drinksGrid">
+            <!-- Wird dynamisch gefüllt -->
+        </div>
+
+        <div class="cart">
+            <h2>Warenkorb</h2>
+            <div id="cartItems" class="empty-cart">
+                Noch keine Getränke ausgewählt
+            </div>
+            <div class="cart-total" id="cartTotal" style="display: none;">
+                <span>Gesamt:</span>
+                <span id="totalAmount">0.00 €</span>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button class="btn btn-cancel" onclick="clearCart()">Abbrechen</button>
+            <button class="btn btn-tip" onclick="showTipModal()" style="background: #f59e0b; flex: 0.7;">💰 Trinkgeld</button>
+            <button class="btn btn-complete" id="completeBtn" onclick="completeTransaction()" disabled>
+                Bezahlt
+            </button>
+        </div>
+
+        <!-- Trinkgeld Modal -->
+        <div id="tipModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+            <div style="background: white; padding: 30px; border-radius: 20px; max-width: 450px; width: 90%;">
+                <h2 style="text-align: center; margin-bottom: 10px; color: #f59e0b;">💰 Trinkgeld</h2>
+                <p style="text-align: center; color: #666; margin-bottom: 20px;">Vielen Dank!</p>
+                
+                <!-- Display -->
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 12px; margin-bottom: 20px; text-align: center; border: 2px solid #e0e0e0;">
+                    <div id="tipDisplay" style="font-size: 2.5em; font-weight: bold; color: #333; min-height: 50px; display: flex; align-items: center; justify-content: center;">0,00 €</div>
+                </div>
+                
+                <!-- Schnellauswahl -->
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 15px;">
+                    <button onclick="setTipQuick(0.50)" class="tip-quick-small">0,50€</button>
+                    <button onclick="setTipQuick(1.00)" class="tip-quick-small">1,00€</button>
+                    <button onclick="setTipQuick(1.50)" class="tip-quick-small">1,50€</button>
+                    <button onclick="setTipQuick(2.00)" class="tip-quick-small">2,00€</button>
+                    <button onclick="setTipQuick(2.50)" class="tip-quick-small">2,50€</button>
+                    <button onclick="setTipQuick(3.00)" class="tip-quick-small">3,00€</button>
+                    <button onclick="setTipQuick(3.50)" class="tip-quick-small">3,50€</button>
+                    <button onclick="setTipQuick(4.00)" class="tip-quick-small">4,00€</button>
+                    <button onclick="setTipQuick(4.50)" class="tip-quick-small">4,50€</button>
+                    <button onclick="setTipQuick(5.00)" class="tip-quick-small">5,00€</button>
+                    <button onclick="clearTipInput()" class="tip-quick-small" style="background: #dc2626; grid-column: span 2;">Löschen</button>
+                </div>
+                
+                <!-- Numpad -->
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px;">
+                    <button onclick="addTipDigit('7')" class="numpad-btn">7</button>
+                    <button onclick="addTipDigit('8')" class="numpad-btn">8</button>
+                    <button onclick="addTipDigit('9')" class="numpad-btn">9</button>
+                    <button onclick="addTipDigit('4')" class="numpad-btn">4</button>
+                    <button onclick="addTipDigit('5')" class="numpad-btn">5</button>
+                    <button onclick="addTipDigit('6')" class="numpad-btn">6</button>
+                    <button onclick="addTipDigit('1')" class="numpad-btn">1</button>
+                    <button onclick="addTipDigit('2')" class="numpad-btn">2</button>
+                    <button onclick="addTipDigit('3')" class="numpad-btn">3</button>
+                    <button onclick="addTipDigit('0')" class="numpad-btn" style="grid-column: span 2;">0</button>
+                    <button onclick="addTipDigit(',')" class="numpad-btn">,</button>
+                </div>
+                
+                <!-- Aktionen -->
+                <div style="display: flex; gap: 15px;">
+                    <button onclick="closeTipModal()" style="flex: 1; padding: 15px; background: #ccc; border: none; border-radius: 8px; font-size: 1.1em; cursor: pointer; font-weight: bold;">Abbrechen</button>
+                    <button onclick="submitTip()" style="flex: 1; padding: 15px; background: #10b981; color: white; border: none; border-radius: 8px; font-size: 1.1em; font-weight: bold; cursor: pointer;">Speichern</button>
+                </div>
+            </div>
+        </div>
+
+        <style>
+            .tip-quick-small {
+                padding: 8px;
+                background: #f59e0b;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                font-size: 0.9em;
+                font-weight: bold;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+            
+            .tip-quick-small:hover {
+                background: #d97706;
+                transform: translateY(-1px);
+            }
+
+            .numpad-btn {
+                padding: 20px;
+                background: #667eea;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-size: 1.5em;
+                font-weight: bold;
+                cursor: pointer;
+                transition: all 0.2s;
+                box-shadow: 0 2px 5px rgba(102, 126, 234, 0.3);
+            }
+            
+            .numpad-btn:hover {
+                background: #5568d3;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 10px rgba(102, 126, 234, 0.4);
+            }
+
+            .numpad-btn:active {
+                transform: translateY(0);
+            }
+
+            .btn-tip {
+                background: #f59e0b !important;
+            }
+
+            .btn-tip:hover {
+                background: #d97706 !important;
+            }
+        </style>
+
+        <div class="footer">
+            <a href="index.html">← Event wechseln</a> | 
+            <a href="statistics.html">📊 Statistiken ansehen</a> | 
+            <a href="inventory.html">📦 Lager</a> | 
+            <a href="admin.html">⚙️ Verwaltung</a>
+        </div>
+    </div>
+
+    <script>
+        let rooms = [];
+        let drinks = [];
+        let selectedRoom = null;
+        let cart = {};
+
+        // Daten laden
+        async function loadData() {
+            try {
+                const [roomsRes, drinksRes] = await Promise.all([
+                    fetch('/api/rooms'),
+                    fetch('/api/drinks')
+                ]);
+
+                rooms = await roomsRes.json();
+                drinks = await drinksRes.json();
+
+                renderRooms();
+                renderDrinks();
+            } catch (error) {
+                showError('Fehler beim Laden der Daten');
+                console.error(error);
+            }
+        }
+
+        // Räume anzeigen
+        function renderRooms() {
+            const container = document.getElementById('roomSelector');
+            container.innerHTML = rooms.map(room => `
+                <button class="room-btn" onclick="selectRoom(${room.id})" id="room-${room.id}">
+                    ${room.name}
+                </button>
+            `).join('');
+        }
+
+        // Raum auswählen
+        function selectRoom(roomId) {
+            selectedRoom = roomId;
+            
+            // Alle Buttons zurücksetzen
+            document.querySelectorAll('.room-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Aktiven Button markieren
+            document.getElementById(`room-${roomId}`).classList.add('active');
+            
+            // Getränke neu rendern (Preise ändern sich je nach Raum!)
+            renderDrinks();
+            
+            updateCart();
+        }
+
+        // Getränke anzeigen
+        function renderDrinks() {
+            const container = document.getElementById('drinksGrid');
+            
+            // Event-Name und Raum prüfen für Preis-Auswahl
+            const eventName = sessionStorage.getItem('eventName') || 'Hausintern';
+            const roomName = rooms.find(r => r.id === selectedRoom)?.name || '';
+            
+            // Preis-Logik:
+            // 1. Hausintern-Login → IMMER vergünstigt
+            // 2. Raum "Eigenverbrauch" → IMMER vergünstigt (auch bei Events)
+            // 3. Event "Eigenverbrauch" → vergünstigt
+            // 4. Sonst → Normal-Preis
+            const useReducedPrice = (
+                eventName === 'Hausintern' ||           // Hausintern-Login
+                roomName === 'Eigenverbrauch' ||        // Eigenverbrauch-Raum (wichtig!)
+                eventName === 'Eigenverbrauch'          // Eigenverbrauch-Event
+            );
+            
+            container.innerHTML = drinks.map(drink => {
+                // Preis wählen
+                const price = useReducedPrice && drink.price_reduced 
+                    ? drink.price_reduced 
+                    : drink.price;
+                
+                return `
+                    <button class="drink-btn" onclick="addToCart(${drink.id})" style="background: linear-gradient(135deg, ${drink.color || '#667eea'} 0%, ${adjustColor(drink.color || '#667eea', -20)} 100%);">
+                        <span class="drink-name">${drink.name}</span>
+                        <span class="drink-price">${price.toFixed(2)} €</span>
+                    </button>
+                `;
+            }).join('');
+        }
+
+        // Farbe anpassen (für Gradient)
+        function adjustColor(color, percent) {
+            const num = parseInt(color.replace("#",""), 16);
+            const amt = Math.round(2.55 * percent);
+            const R = (num >> 16) + amt;
+            const G = (num >> 8 & 0x00FF) + amt;
+            const B = (num & 0x0000FF) + amt;
+            return "#" + (0x1000000 + (R<255?R<1?0:R:255)*0x10000 +
+                (G<255?G<1?0:G:255)*0x100 + (B<255?B<1?0:B:255))
+                .toString(16).slice(1);
+        }
+
+        // Zum Warenkorb hinzufügen
+        function addToCart(drinkId) {
+            if (!selectedRoom) {
+                showError('Bitte wähle zuerst einen Raum aus');
+                return;
+            }
+
+            if (!cart[drinkId]) {
+                cart[drinkId] = { quantity: 0, drink: drinks.find(d => d.id === drinkId) };
+            }
+            cart[drinkId].quantity++;
+            updateCart();
+        }
+
+        // Menge ändern
+        function changeQuantity(drinkId, delta) {
+            if (cart[drinkId]) {
+                cart[drinkId].quantity += delta;
+                if (cart[drinkId].quantity <= 0) {
+                    delete cart[drinkId];
+                }
+                updateCart();
+            }
+        }
+
+        // Warenkorb aktualisieren
+        function updateCart() {
+            const cartItemsContainer = document.getElementById('cartItems');
+            const totalAmountEl = document.getElementById('totalAmount');
+            const cartTotalEl = document.getElementById('cartTotal');
+            const completeBtn = document.getElementById('completeBtn');
+
+            const cartItems = Object.values(cart);
+            
+            if (cartItems.length === 0) {
+                cartItemsContainer.innerHTML = '<div class="empty-cart">Noch keine Getränke ausgewählt</div>';
+                cartTotalEl.style.display = 'none';
+                completeBtn.disabled = true;
+                return;
+            }
+
+            // Event-Name und Raum prüfen
+            const eventName = sessionStorage.getItem('eventName') || 'Hausintern';
+            const roomName = rooms.find(r => r.id === selectedRoom)?.name || '';
+            const useReducedPrice = (eventName === 'Hausintern' || eventName === 'Eigenverbrauch' || roomName === 'Eigenverbrauch');
+
+            cartItemsContainer.innerHTML = cartItems.map(item => {
+                // Richtigen Preis wählen
+                const price = useReducedPrice && item.drink.price_reduced 
+                    ? item.drink.price_reduced 
+                    : item.drink.price;
+                const total = item.quantity * price;
+                
+                return `
+                    <div class="cart-item">
+                        <div class="cart-item-info">
+                            <div class="cart-item-name">${item.drink.name}</div>
+                        </div>
+                        <div class="cart-item-controls">
+                            <button class="quantity-btn" onclick="changeQuantity(${item.drink.id}, -1)">−</button>
+                            <span class="quantity">${item.quantity}</span>
+                            <button class="quantity-btn" onclick="changeQuantity(${item.drink.id}, 1)">+</button>
+                            <button class="quantity-btn" onclick="removeItem(${item.drink.id})" style="background: #ef4444; margin-left: 5px;" title="Entfernen">🗑️</button>
+                            <span class="item-price">${total.toFixed(2)} €</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            const total = cartItems.reduce((sum, item) => {
+                const price = useReducedPrice && item.drink.price_reduced 
+                    ? item.drink.price_reduced 
+                    : item.drink.price;
+                return sum + (item.quantity * price);
+            }, 0);
+            totalAmountEl.textContent = total.toFixed(2) + ' €';
+            cartTotalEl.style.display = 'flex';
+            completeBtn.disabled = !selectedRoom;
+        }
+
+        // Getränk komplett aus Warenkorb entfernen
+        function removeItem(drinkId) {
+            const item = cart[drinkId];
+            if (!item) return;
+            
+            if (confirm(`"${item.drink.name}" komplett aus dem Warenkorb entfernen?`)) {
+                delete cart[drinkId];
+                updateCart();
+                showSuccess(`${item.drink.name} entfernt`);
+            }
+        }
+
+        // Warenkorb leeren
+        function clearCart() {
+            cart = {};
+            updateCart();
+        }
+
+        // Transaktion abschließen
+        async function completeTransaction() {
+            if (!selectedRoom || Object.keys(cart).length === 0) {
+                showError('Bitte wähle einen Raum und füge Getränke hinzu');
+                return;
+            }
+
+            // Event-Name aus Session holen
+            const eventName = sessionStorage.getItem('eventName') || 'Hausintern';
+            
+            // Raum-Name holen
+            const roomName = rooms.find(r => r.id === selectedRoom)?.name || '';
+            
+            // Preis basierend auf Event-Name ODER Raum-Name wählen
+            const useReducedPrice = (eventName === 'Hausintern' || eventName === 'Eigenverbrauch' || roomName === 'Eigenverbrauch');
+
+            const items = Object.values(cart).map(item => {
+                // Wähle richtigen Preis
+                const price = useReducedPrice && item.drink.price_reduced 
+                    ? item.drink.price_reduced 
+                    : item.drink.price;
+                
+                return {
+                    drink_id: item.drink.id,
+                    quantity: item.quantity,
+                    total_price: item.quantity * price
+                };
+            });
+
+            try {
+                const response = await fetch('/api/transactions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        room_id: selectedRoom,
+                        items: items,
+                        event_name: eventName  // Event-Name mitsenden
+                    })
+                });
+
+                if (response.ok) {
+                    const total = items.reduce((sum, item) => sum + item.total_price, 0);
+                    showSuccess(`Zahlung erfolgreich! Betrag: ${total.toFixed(2)} €`);
+                    clearCart();
+                } else {
+                    showError('Fehler beim Speichern der Transaktion');
+                }
+            } catch (error) {
+                showError('Netzwerkfehler');
+                console.error(error);
+            }
+        }
+
+        // Erfolgsmeldung anzeigen
+        function showSuccess(message) {
+            const el = document.getElementById('successMessage');
+            el.textContent = message;
+            el.style.display = 'block';
+            setTimeout(() => el.style.display = 'none', 3000);
+        }
+
+        // Fehlermeldung anzeigen
+        function showError(message) {
+            const el = document.getElementById('errorMessage');
+            el.textContent = message;
+            el.style.display = 'block';
+            setTimeout(() => el.style.display = 'none', 3000);
+        }
+
+        // Trinkgeld-Modal öffnen
+        function showTipModal() {
+            if (!selectedRoom) {
+                showError('Bitte wähle zuerst einen Raum aus');
+                return;
+            }
+            document.getElementById('tipModal').style.display = 'flex';
+            clearTipInput();
+        }
+
+        // Trinkgeld-Modal schließen
+        function closeTipModal() {
+            document.getElementById('tipModal').style.display = 'none';
+            clearTipInput();
+        }
+
+        // Trinkgeld-Input State
+        let tipInput = '';
+
+        // Display aktualisieren
+        function updateTipDisplay() {
+            const display = document.getElementById('tipDisplay');
+            if (tipInput === '') {
+                display.textContent = '0,00 €';
+            } else {
+                // Formatierung: X,XX €
+                let formatted = tipInput;
+                if (!formatted.includes(',')) {
+                    formatted = formatted + ',00';
+                } else {
+                    const parts = formatted.split(',');
+                    if (parts[1].length === 1) {
+                        formatted = parts[0] + ',' + parts[1] + '0';
+                    }
+                }
+                display.textContent = formatted + ' €';
+            }
+        }
+
+        // Ziffer hinzufügen
+        function addTipDigit(digit) {
+            // Maximal 2 Nachkommastellen
+            if (tipInput.includes(',')) {
+                const parts = tipInput.split(',');
+                if (digit === ',') return; // Nur ein Komma erlaubt
+                if (parts[1].length >= 2) return; // Max 2 Nachkommastellen
+            }
+            
+            // Kein zweites Komma
+            if (digit === ',' && tipInput.includes(',')) return;
+            
+            // Maximal 5 Stellen vor dem Komma
+            if (!tipInput.includes(',') && tipInput.length >= 5 && digit !== ',') return;
+            
+            tipInput += digit;
+            updateTipDisplay();
+        }
+
+        // Input löschen
+        function clearTipInput() {
+            tipInput = '';
+            updateTipDisplay();
+        }
+
+        // Schnellbetrag setzen
+        function setTipQuick(amount) {
+            tipInput = amount.toFixed(2).replace('.', ',');
+            updateTipDisplay();
+        }
+
+        // Trinkgeld speichern
+        async function submitTip() {
+            // Parse input
+            let amount = 0;
+            if (tipInput !== '') {
+                amount = parseFloat(tipInput.replace(',', '.'));
+            }
+            
+            if (!amount || amount <= 0) {
+                showError('Bitte gib einen gültigen Betrag ein');
+                return;
+            }
+            
+            if (!selectedRoom) {
+                showError('Bitte wähle einen Raum aus');
+                return;
+            }
+            
+            // Event-Name aus Session
+            const eventName = sessionStorage.getItem('eventName') || 'Hausintern';
+            
+            try {
+                const response = await fetch('/api/tips', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        room_id: selectedRoom,
+                        amount: amount,
+                        event_name: eventName  // Event-Name mitsenden
+                    })
+                });
+
+                if (response.ok) {
+                    showSuccess(`Trinkgeld ${amount.toFixed(2)} € gespeichert. Vielen Dank! 💰`);
+                    closeTipModal();
+                } else {
+                    showError('Fehler beim Speichern des Trinkgelds');
+                }
+            } catch (error) {
+                showError('Netzwerkfehler');
+                console.error(error);
+            }
+        }
+
+        // Beim Laden initialisieren
+        window.onload = () => {
+            // Event-Name anzeigen
+            const eventName = sessionStorage.getItem('eventName');
+            if (eventName) {
+                document.getElementById('eventNameDisplay').textContent = `📅 Event: ${eventName}`;
+            }
+            
+            // Daten laden
+            loadData();
+        };
+    </script>
+</body>
+</html>

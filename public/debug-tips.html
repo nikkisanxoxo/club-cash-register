@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trinkgeld Debug - Vereinskasse</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1a1a1a;
+            color: #0f0;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #0ff;
+            border-bottom: 2px solid #0ff;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #ff0;
+            margin-top: 30px;
+        }
+        .section {
+            background: #2a2a2a;
+            border: 1px solid #0f0;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        pre {
+            background: #000;
+            border: 1px solid #333;
+            padding: 10px;
+            overflow-x: auto;
+            border-radius: 3px;
+        }
+        button {
+            background: #0f0;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            border-radius: 3px;
+        }
+        button:hover {
+            background: #0ff;
+        }
+        .success {
+            color: #0f0;
+        }
+        .error {
+            color: #f00;
+        }
+        .warning {
+            color: #ff0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+        th, td {
+            border: 1px solid #0f0;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background: #0a0;
+            color: #000;
+        }
+        .compare {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Vereinskasse - Trinkgeld Debug Console</h1>
+    
+    <div class="section">
+        <h2>Schritt 1: Daten laden</h2>
+        <button onclick="loadAllData()">🔄 Alle Daten laden</button>
+        <button onclick="clearDisplay()">🗑️ Anzeige löschen</button>
+    </div>
+
+    <div class="section">
+        <h2>Schritt 2: Räume</h2>
+        <div id="rooms"></div>
+    </div>
+
+    <div class="section">
+        <h2>Schritt 3: API /api/statistics</h2>
+        <div id="api"></div>
+    </div>
+
+    <div class="section">
+        <h2>Schritt 4: Vergleich pro Raum</h2>
+        <div id="comparison"></div>
+    </div>
+
+    <div class="section">
+        <h2>Schritt 5: CSV Export Test</h2>
+        <button onclick="testCSVExport()">📊 CSV Export simulieren</button>
+        <div id="csvtest"></div>
+    </div>
+
+    <div class="section">
+        <h2>Schritt 6: Rohdaten</h2>
+        <button onclick="toggleRaw()">👁️ Rohdaten anzeigen/verbergen</button>
+        <div id="raw" style="display: none;"></div>
+    </div>
+
+    <script>
+        let rooms = [];
+        let statsData = null;
+
+        async function loadAllData() {
+            console.log('=== LADE ALLE DATEN ===');
+            
+            // Räume laden
+            try {
+                const roomsResp = await fetch('/api/rooms');
+                rooms = await roomsResp.json();
+                console.log('Räume geladen:', rooms);
+                displayRooms();
+            } catch (error) {
+                console.error('Fehler beim Laden der Räume:', error);
+                document.getElementById('rooms').innerHTML = '<span class="error">❌ Fehler beim Laden der Räume</span>';
+            }
+
+            // Statistiken laden
+            try {
+                const statsResp = await fetch('/api/statistics');
+                statsData = await statsResp.json();
+                console.log('Statistiken geladen:', statsData);
+                displayAPI();
+                displayComparison();
+            } catch (error) {
+                console.error('Fehler beim Laden der Statistiken:', error);
+                document.getElementById('api').innerHTML = '<span class="error">❌ Fehler beim Laden der Statistiken</span>';
+            }
+        }
+
+        function displayRooms() {
+            let html = '<table><tr><th>ID</th><th>Name</th></tr>';
+            rooms.forEach(room => {
+                html += `<tr><td>${room.id}</td><td>${room.name}</td></tr>`;
+            });
+            html += '</table>';
+            document.getElementById('rooms').innerHTML = html;
+        }
+
+        function displayAPI() {
+            let html = '<h3>tips_per_room Array:</h3>';
+            html += '<table><tr><th>room_name</th><th>room_id</th><th>total_tips</th></tr>';
+            
+            if (statsData.tips_per_room && statsData.tips_per_room.length > 0) {
+                statsData.tips_per_room.forEach(tip => {
+                    html += `<tr><td>${tip.room_name}</td><td>${tip.room_id}</td><td class="success">${tip.total_tips} €</td></tr>`;
+                });
+            } else {
+                html += '<tr><td colspan="3" class="warning">⚠️ Keine Trinkgeld-Daten</td></tr>';
+            }
+            html += '</table>';
+
+            html += '<h3>summary:</h3>';
+            html += '<table><tr><th>Feld</th><th>Wert</th></tr>';
+            html += `<tr><td>total_items</td><td>${statsData.summary.total_items || 0}</td></tr>`;
+            html += `<tr><td>total_revenue</td><td>${(statsData.summary.total_revenue || 0).toFixed(2)} €</td></tr>`;
+            html += `<tr><td>total_tips</td><td class="success">${(statsData.summary.total_tips || 0).toFixed(2)} €</td></tr>`;
+            html += `<tr><td>tip_count</td><td>${statsData.summary.tip_count || 0}</td></tr>`;
+            html += '</table>';
+
+            document.getElementById('api').innerHTML = html;
+        }
+
+        function displayComparison() {
+            // Erstelle tipsPerRoom Objekt wie im CSV-Export
+            const tipsPerRoom = {};
+            
+            // Initialisiere alle Räume mit 0
+            rooms.forEach(room => {
+                tipsPerRoom[room.name] = 0;
+            });
+            
+            // Trage tatsächliche Werte ein
+            if (statsData.tips_per_room && Array.isArray(statsData.tips_per_room)) {
+                statsData.tips_per_room.forEach(tip => {
+                    if (tip.room_name && tip.total_tips !== undefined && tip.total_tips !== null) {
+                        tipsPerRoom[tip.room_name] = parseFloat(tip.total_tips);
+                    }
+                });
+            }
+
+            console.log('tipsPerRoom (wie im CSV):', tipsPerRoom);
+
+            let html = '<h3>Pro Raum (wie im CSV-Export):</h3>';
+            html += '<table><tr><th>Raum</th><th>Trinkgeld (sollte im CSV stehen)</th><th>Status</th></tr>';
+            
+            rooms.forEach(room => {
+                const tips = tipsPerRoom[room.name] || 0;
+                const apiTip = statsData.tips_per_room?.find(t => t.room_name === room.name);
+                const status = apiTip && apiTip.total_tips === tips ? 
+                    '<span class="success">✓ OK</span>' : 
+                    (tips === 0 ? '<span class="warning">⚠️ Kein Trinkgeld</span>' : '<span class="error">✗ FEHLER</span>');
+                
+                html += `<tr><td>${room.name}</td><td class="success">${tips.toFixed(2)} €</td><td>${status}</td></tr>`;
+            });
+            html += '</table>';
+
+            // Summe
+            const totalFromRooms = Object.values(tipsPerRoom).reduce((a, b) => a + b, 0);
+            const totalFromAPI = statsData.summary.total_tips || 0;
+            const summeOK = Math.abs(totalFromRooms - totalFromAPI) < 0.01;
+
+            html += '<h3>Summen-Vergleich:</h3>';
+            html += '<table><tr><th>Quelle</th><th>Betrag</th><th>Status</th></tr>';
+            html += `<tr><td>Summe aus Räumen</td><td>${totalFromRooms.toFixed(2)} €</td><td>${summeOK ? '<span class="success">✓</span>' : '<span class="error">✗</span>'}</td></tr>`;
+            html += `<tr><td>summary.total_tips</td><td>${totalFromAPI.toFixed(2)} €</td><td>${summeOK ? '<span class="success">✓</span>' : '<span class="error">✗</span>'}</td></tr>`;
+            html += '</table>';
+
+            if (!summeOK) {
+                html += '<p class="error">❌ FEHLER: Summen stimmen nicht überein!</p>';
+            } else {
+                html += '<p class="success">✅ Summen stimmen überein</p>';
+            }
+
+            document.getElementById('comparison').innerHTML = html;
+        }
+
+        function testCSVExport() {
+            console.log('=== CSV EXPORT SIMULATION ===');
+            
+            const roomData = {};
+            rooms.forEach(room => {
+                roomData[room.name] = {
+                    totalQuantity: 0,
+                    totalRevenue: 0
+                };
+            });
+
+            if (statsData.statistics) {
+                statsData.statistics.forEach(stat => {
+                    if (!roomData[stat.room_name]) {
+                        roomData[stat.room_name] = {
+                            totalQuantity: 0,
+                            totalRevenue: 0
+                        };
+                    }
+                    roomData[stat.room_name].totalQuantity += stat.total_quantity;
+                    roomData[stat.room_name].totalRevenue += stat.total_revenue;
+                });
+            }
+
+            const tipsPerRoom = {};
+            rooms.forEach(room => {
+                tipsPerRoom[room.name] = 0;
+            });
+
+            if (statsData.tips_per_room && Array.isArray(statsData.tips_per_room)) {
+                statsData.tips_per_room.forEach(tip => {
+                    if (tip.room_name && tip.total_tips !== undefined && tip.total_tips !== null) {
+                        tipsPerRoom[tip.room_name] = parseFloat(tip.total_tips);
+                    }
+                });
+            }
+
+            console.log('roomData:', roomData);
+            console.log('tipsPerRoom:', tipsPerRoom);
+
+            let csv = '=== ABRECHNUNG PRO RAUM ===\n\n';
+            
+            rooms.forEach(room => {
+                const roomName = room.name;
+                const data = roomData[roomName] || { totalQuantity: 0, totalRevenue: 0 };
+                const tips = tipsPerRoom[roomName] || 0;
+                
+                csv += `${roomName}\n`;
+                csv += `Getränke,${data.totalQuantity}\n`;
+                csv += `Einnahmen Getränke,${data.totalRevenue.toFixed(2)}\n`;
+                csv += `Trinkgeld,${tips.toFixed(2)}\n`;
+                csv += `Gesamt ${roomName},${(data.totalRevenue + tips).toFixed(2)}\n\n`;
+            });
+
+            csv += '=== GESAMT ===\n';
+            csv += `Gesamt Trinkgeld,${(statsData.summary.total_tips || 0).toFixed(2)}\n`;
+
+            const html = '<h3>CSV-Vorschau (Auszug):</h3><pre>' + csv + '</pre>';
+            document.getElementById('csvtest').innerHTML = html;
+        }
+
+        function toggleRaw() {
+            const rawDiv = document.getElementById('raw');
+            if (rawDiv.style.display === 'none') {
+                let html = '<h3>API /api/statistics (komplett):</h3>';
+                html += '<pre>' + JSON.stringify(statsData, null, 2) + '</pre>';
+                html += '<h3>rooms Array:</h3>';
+                html += '<pre>' + JSON.stringify(rooms, null, 2) + '</pre>';
+                rawDiv.innerHTML = html;
+                rawDiv.style.display = 'block';
+            } else {
+                rawDiv.style.display = 'none';
+            }
+        }
+
+        function clearDisplay() {
+            document.getElementById('rooms').innerHTML = '';
+            document.getElementById('api').innerHTML = '';
+            document.getElementById('comparison').innerHTML = '';
+            document.getElementById('csvtest').innerHTML = '';
+            document.getElementById('raw').innerHTML = '';
+            statsData = null;
+            rooms = [];
+        }
+
+        // Auto-load on page load
+        window.onload = () => {
+            loadAllData();
+        };
+    </script>
+</body>
+</html>

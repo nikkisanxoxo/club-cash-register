@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verwaltung - Vereinskasse</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+
+        .section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+        }
+
+        .section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .add-drink-form {
+            display: grid;
+            grid-template-columns: 2fr 1fr auto auto;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .add-drink-form input {
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+
+        .add-drink-form button {
+            padding: 12px 24px;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .add-drink-form button:hover {
+            background: #059669;
+        }
+
+        .drinks-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .drink-item {
+            display: grid;
+            grid-template-columns: 2fr 1fr auto auto;
+            gap: 15px;
+            align-items: center;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            cursor: move;
+            transition: all 0.2s;
+        }
+
+        .drink-item:hover {
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        }
+
+        .drink-item input {
+            padding: 8px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 1em;
+        }
+
+        .drink-item.inactive {
+            opacity: 0.5;
+        }
+
+        .drink-item-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-save {
+            padding: 8px 16px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .btn-save:hover {
+            background: #5568d3;
+        }
+
+        .btn-toggle {
+            padding: 8px 16px;
+            background: #f59e0b;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .btn-toggle:hover {
+            background: #d97706;
+        }
+
+        .success-message, .error-message {
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1.1em;
+            display: none;
+        }
+
+        .success-message {
+            background: #10b981;
+            color: white;
+        }
+
+        .error-message {
+            background: #ef4444;
+            color: white;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        .info-box {
+            background: #e0e7ff;
+            color: #667eea;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .info-box strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            .add-drink-form,
+            .drink-item {
+                grid-template-columns: 1fr;
+            }
+
+            .drink-item-actions {
+                justify-content: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Passwort-Dialog -->
+        <div id="passwordDialog" style="display: flex; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center;">
+            <div style="background: white; padding: 40px; border-radius: 20px; max-width: 400px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+                <h2 style="text-align: center; margin-bottom: 10px; color: #667eea;">🔒 Passwort erforderlich</h2>
+                <p style="text-align: center; color: #666; margin-bottom: 30px;">Bitte gib das Admin-Passwort ein</p>
+                
+                <input type="password" id="passwordInput" placeholder="Passwort" 
+                       style="width: 100%; padding: 15px; font-size: 1.1em; border: 2px solid #ddd; border-radius: 8px; margin-bottom: 20px;"
+                       onkeypress="if(event.key==='Enter') checkPassword()">
+                
+                <div id="passwordError" style="display: none; background: #fee; color: #c00; padding: 10px; border-radius: 6px; margin-bottom: 15px; text-align: center;"></div>
+                
+                <div style="display: flex; gap: 15px;">
+                    <button onclick="window.location.href='index.html'" style="flex: 1; padding: 15px; background: #ccc; border: none; border-radius: 8px; font-size: 1.1em; cursor: pointer;">Zurück</button>
+                    <button onclick="checkPassword()" style="flex: 1; padding: 15px; background: #667eea; color: white; border: none; border-radius: 8px; font-size: 1.1em; font-weight: bold; cursor: pointer;">Anmelden</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="mainContent" style="display: none;">
+        <h1>⚙️ Verwaltung</h1>
+
+        <div class="success-message" id="successMessage"></div>
+        <div class="error-message" id="errorMessage"></div>
+
+        <div class="section">
+            <h2>Getränke verwalten</h2>
+            
+            <div class="info-box">
+                <strong>Hinweise:</strong>
+                Hier können Sie neue Getränke hinzufügen, Preise und Farben ändern oder Getränke deaktivieren. 
+                Deaktivierte Getränke erscheinen nicht mehr in der Kasse, bleiben aber in der Statistik erhalten.
+                <br><br>
+                <strong>💡 Tipp:</strong> Ziehen Sie die Getränke mit dem ☰ Symbol, um die Reihenfolge zu ändern!
+            </div>
+
+            <div class="add-drink-form">
+                <input type="text" id="newDrinkName" placeholder="Getränkename (z.B. Limo)">
+                <input type="number" id="newDrinkPrice" placeholder="Normal-Preis (€)" step="0.10" min="0" title="Normal-Preis">
+                <input type="number" id="newDrinkPriceReduced" placeholder="Vergünstigt (€)" step="0.10" min="0" title="Vergünstigter Preis (optional)" style="border: 2px dashed #10b981;">
+                <input type="color" id="newDrinkColor" value="#667eea" title="Button-Farbe">
+                <button onclick="addDrink()">+ Hinzufügen</button>
+            </div>
+
+            <div class="drinks-list" id="drinksList">
+                <!-- Wird dynamisch gefüllt -->
+            </div>
+        </div>
+
+        <div class="footer">
+            <a href="index.html">← Zurück zur Kasse</a> | 
+            <a href="statistics.html">📊 Statistiken</a>
+        </div>
+        </div> <!-- End mainContent -->
+    </div>
+
+    <script>
+        let drinks = [];
+        let currentPassword = '';
+
+        // Passwort prüfen
+        async function checkPassword() {
+            const password = document.getElementById('passwordInput').value;
+            const errorEl = document.getElementById('passwordError');
+            
+            try {
+                const response = await fetch('/api/auth/validate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password })
+                });
+
+                if (response.ok) {
+                    currentPassword = password;
+                    document.getElementById('passwordDialog').style.display = 'none';
+                    document.getElementById('mainContent').style.display = 'block';
+                    loadDrinks();
+                } else {
+                    errorEl.textContent = '❌ Falsches Passwort';
+                    errorEl.style.display = 'block';
+                    document.getElementById('passwordInput').value = '';
+                }
+            } catch (error) {
+                errorEl.textContent = '❌ Verbindungsfehler';
+                errorEl.style.display = 'block';
+            }
+        }
+
+        // Getränke laden
+        async function loadDrinks() {
+            try {
+                const response = await fetch('/api/drinks/all');
+                const allDrinks = await response.json();
+                drinks = allDrinks;
+                renderDrinks();
+            } catch (error) {
+                showError('Fehler beim Laden der Getränke');
+                console.error(error);
+            }
+        }
+
+        // Getränke anzeigen
+        function renderDrinks() {
+            const container = document.getElementById('drinksList');
+            
+            if (drinks.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #999;">Keine Getränke vorhanden</p>';
+                return;
+            }
+
+            container.innerHTML = drinks.map((drink, index) => `
+                <div class="drink-item ${drink.active === 0 ? 'inactive' : ''}" id="drink-${drink.id}" draggable="true" ondragstart="dragStart(event, ${index})" ondragover="dragOver(event)" ondrop="drop(event, ${index})" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="cursor: move; font-size: 1.5em; color: #999;" title="Ziehen zum Sortieren">☰</span>
+                        <input type="text" id="name-${drink.id}" value="${drink.name}" style="flex: 1;" placeholder="Getränk-Name">
+                    </div>
+                    <input type="number" id="price-${drink.id}" value="${drink.price.toFixed(2)}" step="0.10" min="0" placeholder="Normal-Preis" title="Normal-Preis">
+                    <input type="number" id="price-reduced-${drink.id}" value="${drink.price_reduced ? drink.price_reduced.toFixed(2) : ''}" step="0.10" min="0" placeholder="Vergünstigt" title="Vergünstigter Preis (optional)" style="border: 2px dashed #10b981;">
+                    <input type="color" id="color-${drink.id}" value="${drink.color || '#667eea'}" title="Button-Farbe" style="width: 60px; height: 40px; border: 2px solid #ddd; border-radius: 6px; cursor: pointer;">
+                    <div class="drink-item-actions">
+                        <button class="btn-save" onclick="updateDrink(${drink.id})">Speichern</button>
+                        <button class="btn-toggle" onclick="toggleDrink(${drink.id}, ${drink.active})">
+                            ${drink.active === 1 ? 'Deaktivieren' : 'Aktivieren'}
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Drag & Drop für Sortierung
+        let draggedIndex = null;
+
+        function dragStart(event, index) {
+            draggedIndex = index;
+            event.target.style.opacity = '0.5';
+        }
+
+        function dragOver(event) {
+            event.preventDefault();
+        }
+
+        function dragEnter(event) {
+            if (event.target.classList.contains('drink-item')) {
+                event.target.style.borderTop = '3px solid #667eea';
+            }
+        }
+
+        function dragLeave(event) {
+            if (event.target.classList.contains('drink-item')) {
+                event.target.style.borderTop = '';
+            }
+        }
+
+        async function drop(event, dropIndex) {
+            event.preventDefault();
+            event.target.style.borderTop = '';
+            
+            if (draggedIndex === null || draggedIndex === dropIndex) {
+                return;
+            }
+
+            // Array neu ordnen
+            const draggedItem = drinks[draggedIndex];
+            drinks.splice(draggedIndex, 1);
+            drinks.splice(dropIndex, 0, draggedItem);
+
+            // Sortierung speichern
+            await saveSortOrder();
+            
+            // Neu rendern
+            renderDrinks();
+            draggedIndex = null;
+        }
+
+        // Sortierung in Datenbank speichern
+        async function saveSortOrder() {
+            try {
+                for (let i = 0; i < drinks.length; i++) {
+                    const drink = drinks[i];
+                    await fetch(`/api/drinks/${drink.id}`, {
+                        method: 'PUT',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'X-Admin-Password': currentPassword
+                        },
+                        body: JSON.stringify({ 
+                            name: drink.name, 
+                            price: drink.price,
+                            color: drink.color || '#667eea',
+                            active: drink.active,
+                            sort_order: i
+                        })
+                    });
+                }
+                showSuccess('Reihenfolge gespeichert');
+            } catch (error) {
+                showError('Fehler beim Speichern der Reihenfolge');
+                console.error(error);
+            }
+        }
+
+        // Neues Getränk hinzufügen
+        async function addDrink() {
+            const name = document.getElementById('newDrinkName').value.trim();
+            const price = parseFloat(document.getElementById('newDrinkPrice').value);
+            const priceReducedInput = document.getElementById('newDrinkPriceReduced').value.trim();
+            const priceReduced = priceReducedInput ? parseFloat(priceReducedInput) : null;
+            const color = document.getElementById('newDrinkColor').value;
+
+            if (!name) {
+                showError('Bitte einen Namen eingeben');
+                return;
+            }
+
+            if (isNaN(price) || price < 0) {
+                showError('Bitte einen gültigen Preis eingeben');
+                return;
+            }
+            
+            if (priceReduced !== null && (isNaN(priceReduced) || priceReduced < 0)) {
+                showError('Ungültiger vergünstigter Preis');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/drinks', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-Admin-Password': currentPassword
+                    },
+                    body: JSON.stringify({ name, price, price_reduced: priceReduced, color })
+                });
+
+                if (response.ok) {
+                    showSuccess('Getränk erfolgreich hinzugefügt');
+                    document.getElementById('newDrinkName').value = '';
+                    document.getElementById('newDrinkPrice').value = '';
+                    document.getElementById('newDrinkPriceReduced').value = '';
+                    document.getElementById('newDrinkColor').value = '#667eea';
+                    await loadDrinks();
+                } else {
+                    const error = await response.json();
+                    showError(error.error || 'Fehler beim Hinzufügen');
+                }
+            } catch (error) {
+                showError('Netzwerkfehler');
+                console.error(error);
+            }
+        }
+
+        // Getränk aktualisieren
+        async function updateDrink(drinkId) {
+            const name = document.getElementById(`name-${drinkId}`).value.trim();
+            const price = parseFloat(document.getElementById(`price-${drinkId}`).value);
+            const priceReducedInput = document.getElementById(`price-reduced-${drinkId}`).value.trim();
+            const priceReduced = priceReducedInput ? parseFloat(priceReducedInput) : null;
+            const color = document.getElementById(`color-${drinkId}`).value;
+
+            if (!name) {
+                showError('Name darf nicht leer sein');
+                return;
+            }
+
+            if (isNaN(price) || price < 0) {
+                showError('Ungültiger Preis');
+                return;
+            }
+            
+            if (priceReduced !== null && (isNaN(priceReduced) || priceReduced < 0)) {
+                showError('Ungültiger vergünstigter Preis');
+                return;
+            }
+
+            const drink = drinks.find(d => d.id === drinkId);
+            const active = drink ? drink.active : 1;
+            const sort_order = drink ? drink.sort_order : 0;
+
+            try {
+                const response = await fetch(`/api/drinks/${drinkId}`, {
+                    method: 'PUT',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-Admin-Password': currentPassword
+                    },
+                    body: JSON.stringify({ name, price, price_reduced: priceReduced, active, color, sort_order })
+                });
+
+                if (response.ok) {
+                    showSuccess('Getränk aktualisiert');
+                    await loadDrinks();
+                } else {
+                    showError('Fehler beim Aktualisieren');
+                }
+            } catch (error) {
+                showError('Netzwerkfehler');
+                console.error(error);
+            }
+        }
+
+        // Getränk aktivieren/deaktivieren
+        async function toggleDrink(drinkId, currentActive) {
+            const drink = drinks.find(d => d.id === drinkId);
+            if (!drink) return;
+
+            const newActive = currentActive === 1 ? 0 : 1;
+
+            try {
+                const response = await fetch(`/api/drinks/${drinkId}`, {
+                    method: 'PUT',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-Admin-Password': currentPassword
+                    },
+                    body: JSON.stringify({ 
+                        name: drink.name, 
+                        price: drink.price,
+                        color: drink.color || '#667eea',
+                        active: newActive,
+                        sort_order: drink.sort_order || 0
+                    })
+                });
+
+                if (response.ok) {
+                    showSuccess(newActive === 1 ? 'Getränk aktiviert' : 'Getränk deaktiviert');
+                    await loadDrinks();
+                } else {
+                    showError('Fehler beim Aktualisieren');
+                }
+            } catch (error) {
+                showError('Netzwerkfehler');
+                console.error(error);
+            }
+        }
+
+        // Erfolgsmeldung
+        function showSuccess(message) {
+            const el = document.getElementById('successMessage');
+            el.textContent = message;
+            el.style.display = 'block';
+            setTimeout(() => el.style.display = 'none', 3000);
+        }
+
+        // Fehlermeldung
+        function showError(message) {
+            const el = document.getElementById('errorMessage');
+            el.textContent = message;
+            el.style.display = 'block';
+            setTimeout(() => el.style.display = 'none', 3000);
+        }
+
+        // Initialisierung
+        // Auto-focus auf Passwort-Feld
+        document.getElementById('passwordInput').focus();
+    </script>
+</body>
+</html>

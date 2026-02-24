@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lager - Vereinskasse</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; background: white; border-radius: 20px; padding: 30px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+        h1 { text-align: center; color: #333; margin-bottom: 10px; font-size: 2.5em; }
+        .subtitle { text-align: center; color: #666; margin-bottom: 30px; }
+        
+        /* Navigation */
+        .nav { display: flex; gap: 10px; margin-bottom: 30px; justify-content: center; flex-wrap: wrap; }
+        .nav a { padding: 12px 24px; background: #f8f9fa; border-radius: 8px; text-decoration: none; color: #333; font-weight: bold; transition: all 0.3s; }
+        .nav a:hover { background: #667eea; color: white; transform: translateY(-2px); }
+        .nav a.active { background: #667eea; color: white; }
+        
+        /* Summary Cards */
+        .summary-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .summary-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        .summary-card h3 { font-size: 0.9em; opacity: 0.9; margin-bottom: 10px; }
+        .summary-card .value { font-size: 2em; font-weight: bold; }
+        
+        /* Inventory Table */
+        .inventory-table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .inventory-table th, .inventory-table td { padding: 15px; text-align: left; border-bottom: 1px solid #e0e0e0; }
+        .inventory-table th { background: #f8f9fa; font-weight: bold; color: #333; position: sticky; top: 0; z-index: 10; }
+        .inventory-table tr:hover { background: #f8f9fa; }
+        .inventory-table tbody tr:last-child td { border-bottom: none; }
+        
+        /* Drink Color Indicator */
+        .drink-color { width: 30px; height: 30px; border-radius: 6px; display: inline-block; vertical-align: middle; margin-right: 10px; }
+        
+        /* Stock Status */
+        .stock-status { padding: 4px 12px; border-radius: 12px; font-size: 0.9em; font-weight: bold; display: inline-block; }
+        .stock-ok { background: #d1fae5; color: #065f46; }
+        .stock-low { background: #fed7aa; color: #92400e; }
+        .stock-out { background: #fee; color: #991b1b; }
+        
+        /* Input Controls */
+        .quantity-input { width: 80px; padding: 8px; border: 2px solid #ddd; border-radius: 6px; text-align: center; font-size: 1em; }
+        .quantity-input:focus { border-color: #667eea; outline: none; }
+        
+        /* Buttons */
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: all 0.3s; font-size: 0.9em; }
+        .btn-primary { background: #667eea; color: white; }
+        .btn-primary:hover { background: #5568d3; transform: translateY(-1px); }
+        .btn-success { background: #10b981; color: white; }
+        .btn-success:hover { background: #059669; }
+        .btn-warning { background: #f59e0b; color: white; }
+        .btn-warning:hover { background: #d97706; }
+        .btn-small { padding: 4px 8px; font-size: 0.85em; }
+        
+        /* Modal */
+        .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; }
+        .modal.show { display: flex; }
+        .modal-content { background: white; padding: 30px; border-radius: 20px; max-width: 500px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+        .modal-content h2 { margin-bottom: 20px; color: #333; }
+        .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+        
+        /* Form Groups */
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #333; }
+        .form-group input, .form-group textarea { width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 1em; }
+        .form-group textarea { min-height: 80px; resize: vertical; }
+        
+        /* Messages */
+        .success-message, .error-message { padding: 15px; border-radius: 8px; margin-bottom: 20px; display: none; }
+        .success-message { background: #d1fae5; color: #065f46; border: 1px solid #10b981; }
+        .error-message { background: #fee; color: #991b1b; border: 1px solid #ef4444; }
+        
+        /* Password Dialog */
+        #passwordDialog { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; }
+        .password-box { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); text-align: center; }
+        .password-box input { width: 100%; padding: 15px; margin: 20px 0; border: 2px solid #ddd; border-radius: 8px; font-size: 1.1em; }
+        
+        /* History Link */
+        .history-link { color: #667eea; text-decoration: none; font-size: 0.9em; }
+        .history-link:hover { text-decoration: underline; }
+        
+        @media (max-width: 768px) {
+            .container { padding: 15px; }
+            h1 { font-size: 2em; }
+            .summary-cards { grid-template-columns: 1fr; }
+            .inventory-table { font-size: 0.9em; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Password Dialog -->
+    <div id="passwordDialog">
+        <div class="password-box">
+            <h2>🔒 Admin-Bereich</h2>
+            <p>Bitte Admin-Passwort eingeben</p>
+            <input type="password" id="passwordInput" placeholder="Passwort" onkeypress="if(event.key==='Enter') checkPassword()">
+            <button class="btn btn-primary" onclick="checkPassword()">Anmelden</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <h1>📦 Lager</h1>
+        <p class="subtitle">Bestandsverwaltung & Inventur</p>
+
+        <!-- Navigation -->
+        <div class="nav">
+            <a href="kasse.html">Kasse</a>
+            <a href="statistics.html">Statistiken</a>
+            <a href="admin.html">Verwaltung</a>
+            <a href="inventory.html" class="active">Lager</a>
+        </div>
+
+        <div class="success-message" id="successMessage"></div>
+        <div class="error-message" id="errorMessage"></div>
+
+        <!-- Summary Cards -->
+        <div class="summary-cards" id="summaryCards">
+            <!-- Wird dynamisch gefüllt -->
+        </div>
+
+        <!-- Inventory Table -->
+        <table class="inventory-table">
+            <thead>
+                <tr>
+                    <th>Getränk</th>
+                    <th>Aktueller Bestand</th>
+                    <th>Status</th>
+                    <th>Letzte Zählung</th>
+                    <th>Letzte Änderung</th>
+                    <th>Aktionen</th>
+                </tr>
+            </thead>
+            <tbody id="inventoryList">
+                <tr><td colspan="6" style="text-align: center; padding: 40px; color: #999;">Lade Lagerbestand...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Count Modal -->
+    <div class="modal" id="countModal">
+        <div class="modal-content">
+            <h2>📋 Inventur durchführen</h2>
+            <div id="countDrinkInfo" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;"></div>
+            <div class="form-group">
+                <label for="countQuantity">Gezählte Menge:</label>
+                <input type="number" id="countQuantity" min="0" step="1" placeholder="0">
+            </div>
+            <div class="form-group">
+                <label for="countNotes">Notiz (optional):</label>
+                <textarea id="countNotes" placeholder="z.B. Inventur Monatsende"></textarea>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-warning" onclick="closeCountModal()">Abbrechen</button>
+                <button class="btn btn-success" onclick="saveCount()">Speichern</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Adjust Modal -->
+    <div class="modal" id="adjustModal">
+        <div class="modal-content">
+            <h2>🔧 Bestand anpassen</h2>
+            <div id="adjustDrinkInfo" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;"></div>
+            <div class="form-group">
+                <label for="adjustment">Anpassung (+ oder -):</label>
+                <input type="number" id="adjustment" step="1" placeholder="z.B. +24 oder -5">
+            </div>
+            <div class="form-group">
+                <label for="adjustNotes">Grund (optional):</label>
+                <textarea id="adjustNotes" placeholder="z.B. Lieferung, Bruch, Schwund"></textarea>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-warning" onclick="closeAdjustModal()">Abbrechen</button>
+                <button class="btn btn-primary" onclick="saveAdjustment()">Anpassen</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentPassword = '';
+        let inventory = [];
+        let selectedItem = null;
+
+        // Password Check
+        function checkPassword() {
+            const password = document.getElementById('passwordInput').value;
+            
+            fetch('/api/auth/validate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.valid) {
+                    currentPassword = password;
+                    document.getElementById('passwordDialog').style.display = 'none';
+                    init();
+                } else {
+                    alert('Falsches Passwort');
+                }
+            })
+            .catch(error => {
+                alert('Fehler bei der Anmeldung');
+                console.error(error);
+            });
+        }
+
+        // Initialize
+        async function init() {
+            await loadInventory();
+            await loadSummary();
+        }
+
+        // Load Inventory
+        async function loadInventory() {
+            try {
+                const response = await fetch('/api/inventory');
+                inventory = await response.json();
+                renderInventory();
+            } catch (error) {
+                showError('Fehler beim Laden des Lagerbestands');
+                console.error(error);
+            }
+        }
+
+        // Load Summary
+        async function loadSummary() {
+            try {
+                const response = await fetch('/api/inventory/summary');
+                const summary = await response.json();
+                renderSummary(summary);
+            } catch (error) {
+                console.error('Error loading summary:', error);
+            }
+        }
+
+        // Render Summary
+        function renderSummary(summary) {
+            const container = document.getElementById('summaryCards');
+            container.innerHTML = `
+                <div class="summary-card">
+                    <h3>Getränke gesamt</h3>
+                    <div class="value">${summary.total_drinks || 0}</div>
+                </div>
+                <div class="summary-card" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                    <h3>Lagerbestand</h3>
+                    <div class="value">${summary.total_stock || 0}</div>
+                </div>
+                <div class="summary-card" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+                    <h3>Niedriger Bestand</h3>
+                    <div class="value">${summary.low_stock || 0}</div>
+                </div>
+                <div class="summary-card" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
+                    <h3>Nicht vorrätig</h3>
+                    <div class="value">${summary.out_of_stock || 0}</div>
+                </div>
+            `;
+        }
+
+        // Render Inventory
+        function renderInventory() {
+            const tbody = document.getElementById('inventoryList');
+            
+            if (inventory.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px; color: #999;">Keine Getränke im Lager</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = inventory.map(item => {
+                const stockClass = item.quantity === 0 ? 'stock-out' : (item.quantity < 10 ? 'stock-low' : 'stock-ok');
+                const stockText = item.quantity === 0 ? 'Nicht vorrätig' : (item.quantity < 10 ? 'Niedriger Bestand' : 'Ausreichend');
+                
+                const lastCount = item.last_count_date ? new Date(item.last_count_date).toLocaleDateString('de-DE') : 'Nie';
+                const lastUpdate = new Date(item.last_updated).toLocaleString('de-DE');
+                
+                return `
+                    <tr>
+                        <td>
+                            <span class="drink-color" style="background: ${item.color}"></span>
+                            <strong>${item.drink_name}</strong>
+                        </td>
+                        <td style="font-size: 1.2em; font-weight: bold;">${item.quantity}</td>
+                        <td><span class="stock-status ${stockClass}">${stockText}</span></td>
+                        <td>${lastCount}</td>
+                        <td>${lastUpdate}</td>
+                        <td>
+                            <button class="btn btn-success btn-small" onclick="openCountModal(${item.id})">📋 Zählen</button>
+                            <button class="btn btn-primary btn-small" onclick="openAdjustModal(${item.id})">🔧 Anpassen</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Open Count Modal
+        function openCountModal(id) {
+            selectedItem = inventory.find(i => i.id === id);
+            if (!selectedItem) return;
+            
+            document.getElementById('countDrinkInfo').innerHTML = `
+                <strong>${selectedItem.drink_name}</strong><br>
+                Aktueller Bestand: ${selectedItem.quantity}
+            `;
+            document.getElementById('countQuantity').value = selectedItem.quantity;
+            document.getElementById('countNotes').value = '';
+            document.getElementById('countModal').classList.add('show');
+        }
+
+        function closeCountModal() {
+            document.getElementById('countModal').classList.remove('show');
+            selectedItem = null;
+        }
+
+        // Save Count
+        async function saveCount() {
+            const quantity = parseInt(document.getElementById('countQuantity').value);
+            const notes = document.getElementById('countNotes').value;
+            
+            if (isNaN(quantity) || quantity < 0) {
+                alert('Bitte gültige Menge eingeben');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/inventory/${selectedItem.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Admin-Password': currentPassword
+                    },
+                    body: JSON.stringify({ quantity, notes })
+                });
+                
+                if (response.ok) {
+                    showSuccess('Lagerbestand aktualisiert');
+                    closeCountModal();
+                    await loadInventory();
+                    await loadSummary();
+                } else {
+                    showError('Fehler beim Aktualisieren');
+                }
+            } catch (error) {
+                showError('Netzwerkfehler');
+                console.error(error);
+            }
+        }
+
+        // Open Adjust Modal
+        function openAdjustModal(id) {
+            selectedItem = inventory.find(i => i.id === id);
+            if (!selectedItem) return;
+            
+            document.getElementById('adjustDrinkInfo').innerHTML = `
+                <strong>${selectedItem.drink_name}</strong><br>
+                Aktueller Bestand: ${selectedItem.quantity}
+            `;
+            document.getElementById('adjustment').value = '';
+            document.getElementById('adjustNotes').value = '';
+            document.getElementById('adjustModal').classList.add('show');
+        }
+
+        function closeAdjustModal() {
+            document.getElementById('adjustModal').classList.remove('show');
+            selectedItem = null;
+        }
+
+        // Save Adjustment
+        async function saveAdjustment() {
+            const adjustment = parseInt(document.getElementById('adjustment').value);
+            const notes = document.getElementById('adjustNotes').value;
+            
+            if (isNaN(adjustment) || adjustment === 0) {
+                alert('Bitte gültige Anpassung eingeben (positiv oder negativ)');
+                return;
+            }
+            
+            const newQuantity = selectedItem.quantity + adjustment;
+            if (newQuantity < 0) {
+                alert('Anpassung würde zu negativem Bestand führen');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/inventory/adjust', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Admin-Password': currentPassword
+                    },
+                    body: JSON.stringify({
+                        drink_id: selectedItem.drink_id,
+                        adjustment,
+                        notes
+                    })
+                });
+                
+                if (response.ok) {
+                    showSuccess(`Bestand ${adjustment > 0 ? 'erhöht' : 'reduziert'}: ${Math.abs(adjustment)}`);
+                    closeAdjustModal();
+                    await loadInventory();
+                    await loadSummary();
+                } else {
+                    showError('Fehler beim Anpassen');
+                }
+            } catch (error) {
+                showError('Netzwerkfehler');
+                console.error(error);
+            }
+        }
+
+        // Messages
+        function showSuccess(message) {
+            const el = document.getElementById('successMessage');
+            el.textContent = message;
+            el.style.display = 'block';
+            setTimeout(() => el.style.display = 'none', 5000);
+        }
+
+        function showError(message) {
+            const el = document.getElementById('errorMessage');
+            el.textContent = message;
+            el.style.display = 'block';
+            setTimeout(() => el.style.display = 'none', 5000);
+        }
+
+        // On Load
+        window.onload = () => {
+            document.getElementById('passwordDialog').style.display = 'flex';
+            document.getElementById('passwordInput').focus();
+        };
+    </script>
+</body>
+</html>
